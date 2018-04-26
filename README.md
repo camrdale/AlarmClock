@@ -23,6 +23,9 @@ Some future features being worked on:
 Here is what the wiring daigram looks like:
 ![schematic of the circuits](images/schematic.jpg)
 
+Here is what the prototype looked like on a breadboard:
+![schematic of the circuits](images/schematic.jpg)
+
 Here is what it looks like on the expansion board:
 ![schematic of the circuits](images/wiring.jpg)
 
