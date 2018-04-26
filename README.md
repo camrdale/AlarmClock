@@ -24,16 +24,16 @@ Here is what the wiring daigram looks like:
 ![schematic of the circuits](images/schematic.jpg)
 
 Here is what the prototype looked like on a breadboard:
-![schematic of the circuits](images/schematic.jpg)
+![prototype of the circuits](images/prototype.jpg)
 
 Here is what it looks like on the expansion board:
-![schematic of the circuits](images/wiring.jpg)
+![expansion board circuits](images/wiring.jpg)
 
 Here is the expansion board next to the Arduino controller:
-![schematic of the circuits](images/expansion.jpg)
+![expansion board and Arduino](images/expansion.jpg)
 
 Here is the assembled final product:
-![schematic of the circuits](images/finalform.jpg)
+![final assembled product](images/finalform.jpg)
 
 * [AlarmClock](AlarmClock/) contains the code to deploy on the Arduino.
 * [AlarmClockControl](AlarmClockControl/) contains the control script that runs on the Raspberry Pi.
