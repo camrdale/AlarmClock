@@ -1,0 +1,57 @@
+<html>
+<head>
+  <link rel="stylesheet" href="alarms.css" />
+  <script src="alarms.js"></script>
+</head>
+
+<body>
+  <div id="clocks">
+  </div>
+  <p>Current time: <span id="current_time">?</span></p>
+  <p>Next <span id="num_alarms_display">?</span> alarms:</p>
+  <ul id="next_alarms">
+  </ul>
+	<p><a id="more_alarms" href="#">Show 10 more alarms</a></p>
+	<p>Don't see your alarm clock here? <a id="show_claim_modal" href="#">Claim it!</a></p>
+
+	<!-- Modal dialog box for claiming an alarm clock. -->
+	<div id="claim_modal" class="modal">
+	  <span id="close_claim_modal" class="close" title="Close Claim">&times;</span>
+	
+	  <form class="modal-content animate">
+	    <div class="container">
+	      <label for="verification_number"><b>Verification Code</b></label>
+	      <input type="text" name="verification_number" id="verification_number" required>
+			  <input type="button" value="Claim" id="claim_clock">
+	    </div>
+	
+	    <div class="container" style="background-color:#f1f1f1">
+	      <button type="button" id="cancel_claim_modal" class="cancelbtn">Cancel</button>
+	    </div>
+	  </form>
+	</div>
+
+	<!-- Modal dialog box for editing an alarm clock. -->
+	<div id="edit_modal" class="modal">
+	  <span id="close_edit_modal" class="close" title="Close Edit">&times;</span>
+	
+	  <form class="modal-content animate">
+	    <div class="container">
+	      <label for="edit_clock_name"><b>Clock Name</b></label>
+	      <input type="text" name="edit_clock_name" id="edit_clock_name" required>
+
+	      <label for="edit_time_zone"><b>Time Zone</b></label>
+	      <input type="text" name="edit_time_zone" id="edit_time_zone" required>
+
+	      <input type="hidden" name="edit_clock_key" id="edit_clock_key">
+
+			  <input type="button" value="Save" id="edit_clock">
+	    </div>
+	
+	    <div class="container" style="background-color:#f1f1f1">
+	      <button type="button" id="cancel_edit_modal" class="cancelbtn">Cancel</button>
+	    </div>
+	  </form>
+	</div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+cron:
+- description: "cleanup datastore"
+  url: /cleanup
+  schedule: every 10 minutes

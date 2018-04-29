@@ -48,11 +48,17 @@ int MAX_SYNC_INTERVAL = 10 * SECS_PER_MIN;
 const byte numChars = 32;
 char receivedChars[numChars];
 boolean newData = false;
+char verifyDelim[] = "verify=";
+boolean verifying = false;
+int verifyCode[4];
 
 // Various states
+int secondsCount = 0;
 boolean alternatingSeconds = true;
-boolean sentL = false;
-boolean sentR = false;
+boolean verifyingAlternating = true;
+boolean pressedL = false;
+boolean pressedR = false;
+boolean pressedLR = false;
 boolean relay = false;
 boolean buzzer = false;
 boolean lights = false;
@@ -62,7 +68,7 @@ void showNewData();
 int get_number(int digit);
 void set_number(int digit, int value);
 void cathode_high();
-void add();
+void periodic();
 void updateOutputs();
 time_t requestSync();
 
@@ -86,28 +92,46 @@ void setup() {
   digitalWrite(CA_4, HIGH);
   digitalWrite(RELAY, LOW);
   Serial.begin(9600);
-  Timer1.initialize(1000000); // set a timer of length 1000000 microseconds (or 1 sec)
-  Timer1.attachInterrupt( add ); // attach the service routine here
+  Timer1.initialize(250000); // set a timer of length 0.25 seconds
+  Timer1.attachInterrupt( periodic ); // attach the service routine here
   setSyncProvider( requestSync );
   setSyncInterval(MAX_SYNC_INTERVAL);
 }
 
 void loop() {
   if (digitalRead(LBUTTON) == LOW) {
-    if (!sentL) {
-      Serial.println("L");
-      sentL = true;
+    pressedL = true;
+    if (pressedR) {
+      pressedLR = true;
     }
   } else {
-    sentL = false;
+    if (pressedLR) {
+      pressedL = false;
+      if (!pressedR) {
+        pressedLR = false;
+        Serial.println("LR");
+      }
+    } else if (pressedL) {
+      pressedL = false;
+      Serial.println("L");
+    }
   }
   if (digitalRead(RBUTTON) == LOW) {
-    if (!sentR) {
-      Serial.println("R");
-      sentR = true;
+    pressedR = true;
+    if (pressedL) {
+      pressedLR = true;
     }
   } else {
-    sentR = false;
+    if (pressedLR) {
+      pressedR = false;
+      if (!pressedL) {
+        pressedLR = false;
+        Serial.println("LR");
+      }
+    } else if (pressedR) {
+      pressedR = false;
+      Serial.println("R");
+    }
   }
 
   recvWithEndMarker();
@@ -161,6 +185,18 @@ void recvWithEndMarker() {
 void showNewData() {
 	if (newData == true) {
 		newData = false;
+
+		// Check for the special verification code message.
+		if (strncmp(receivedChars, verifyDelim, strlen(verifyDelim)) == 0) {
+		  verifying = true;
+		  for (int i = 0; i < 4; i++) {
+		    // Save the code for the verification.
+		    verifyCode[i] = receivedChars[strlen(verifyDelim) + i] - '0';
+		  }
+		  return;
+		}
+		verifying = false;
+
 		// Sync Arduino clock to the time received on the serial port
     setTime(
         (receivedChars[8] - '0') * 10 + receivedChars[9] - '0',
@@ -199,6 +235,10 @@ void showNewData() {
 }
 
 int get_number(int digit) {
+  if (verifying) {
+    return verifyCode[digit];
+  }
+
   int myhours;
   int myminutes;
   switch (digit) {
@@ -219,13 +259,16 @@ int get_number(int digit) {
 
 void set_number(int digit, int value) {
   cathode_high(); //black screen
-  if (timeStatus() != timeSet && alternatingSeconds) {
+  if (verifying && !verifyingAlternating) {
     return;
   }
-  if (digit != 0 || value > 0) {
+  if (timeStatus() != timeSet && !alternatingSeconds && !verifying) {
+    return;
+  }
+  if (digit != 0 || value > 0 || verifying) {
     digitalWrite(latch, LOW); //put the shift register to read
     shiftOut(data, clk, LSBFIRST,
-        digit == 1 ? numbers[value] | B00000001 : numbers[value]); //send the data
+        (digit == 1 and !verifying) ? numbers[value] | B00000001 : numbers[value]);
     digitalWrite(CAS[digit], LOW); //turn on the relevent digit
     digitalWrite(latch, HIGH); //put the shift register to write mode
   }
@@ -246,17 +289,28 @@ void writeCurrentTime() {
   Serial.println(currentTime);
 }
 
-void add()
+void periodic()
 {
-  if (alternatingSeconds) {
-    alternatingSeconds = false;
+  if (verifyingAlternating) {
+    verifyingAlternating = false;
   } else {
-    alternatingSeconds = true;
+    verifyingAlternating = true;
   }
-  if (second() == 0) {
-    writeCurrentTime();
+
+  secondsCount++;
+  if (secondsCount == 4) {
+    secondsCount = 0;
+    // Code is executed every second.
+    if (alternatingSeconds) {
+      alternatingSeconds = false;
+    } else {
+      alternatingSeconds = true;
+    }
+    if (second() == 0) {
+      writeCurrentTime();
+    }
+    updateOutputs();
   }
-  updateOutputs();
 }
 
 void updateOutputs() {

@@ -1,0 +1,87 @@
+runtime: python27
+threadsafe: true
+api_version: 1
+
+libraries:
+- name: pytz
+  version: "2017.2"
+  
+handlers:
+- url: /register
+  script: register.app
+
+- url: /checkin
+  script: checkin.app
+
+- url: /claim
+  login: required
+  script: claim.app
+
+- url: /edit
+  login: required
+  script: edit.app
+
+- url: /delete
+  login: required
+  script: delete.app
+
+- url: /data
+  login: required
+  script: data.app
+
+- url: /cleanup
+  login: admin
+  script: cleanup.app
+
+- url: /(.*\.css)
+  mime_type: text/css
+  static_files: static/\1
+  upload: static/(.*\.css)
+
+- url: /(.*\.html)
+  login: required
+  mime_type: text/html
+  static_files: static/\1
+  upload: static/(.*\.html)
+  expiration: "1h"
+
+- url: /(.*\.ico)
+  mime_type: image/x-icon
+  static_files: static/\1
+  upload: static/(.*\.ico)
+  expiration: "7d"
+  
+- url: /(.*\.js)
+  mime_type: text/javascript
+  static_files: static/\1
+  upload: static/(.*\.js)
+  
+- url: /(.*\.txt)
+  mime_type: text/plain
+  static_files: static/\1
+  upload: static/(.*\.txt)
+
+# image files
+- url: /(.*\.(bmp|gif|ico|jpeg|jpg|png))
+  static_files: static/\1
+  upload: static/(.*\.(bmp|gif|ico|jpeg|jpg|png))
+
+# index files
+- url: /(.+)/
+  login: required
+  static_files: static/\1/index.html
+  upload: static/(.+)/index.html
+  expiration: "15m"
+
+- url: /(.+)
+  login: required
+  static_files: static/\1/index.html
+  upload: static/(.+)/index.html
+  expiration: "15m"
+
+# site root
+- url: /
+  login: required
+  static_files: static/index.html
+  upload: static/index.html
+  expiration: "15m"
