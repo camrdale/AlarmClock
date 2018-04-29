@@ -18,6 +18,7 @@ local.properties
 
 # PyDev specific (Python IDE for Eclipse)
 *.pydevproject
+*.py[cod]
 
 # CDT-specific (C/C++ Development Tooling)
 .cproject
