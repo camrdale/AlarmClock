@@ -52,6 +52,7 @@ public class MediaManager {
         try {
             if (mediaPlayer != null) {
                 if (mediaPlayer.isPlaying()) {
+                    Log.i(TAG, "Stopping playback of media.");
                     mediaPlayer.stop();
                 }
                 mediaPlayer.release();
