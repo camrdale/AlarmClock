@@ -6,25 +6,18 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.util.Log;
 
-import com.cronutils.model.Cron;
-import com.cronutils.model.time.ExecutionTime;
-import com.cronutils.parser.CronParser;
-
+import org.camrdale.clock.alarm.Alarms;
 import org.camrdale.clock.sounds.MediaManager;
 
 import java.time.ZonedDateTime;
+import java.util.Optional;
 
 import javax.inject.Inject;
 
 public class StateManager {
     private static final String TAG = StateManager.class.getSimpleName();
-
-    private static final String PREFERENCES_NAME = "org.camrdale.clock.ALARM_PREFERENCES";
-    private static final String PREF_ALARM_KEY = "currentAlarm";
-    private static final String DEFAULT_ALARM = "*/15 * * * *";
 
     private static final String ALARM_ACTION = "org.camrdale.clock.ALARM";
     private static final String EXPIRE_ALARM_ACTION = "org.camrdale.clock.EXPIRE_ALARM";
@@ -38,10 +31,9 @@ public class StateManager {
         SNOOZED
     }
 
+    private final Alarms alarms;
     private final MediaManager mediaManager;
-    private final CronParser cronParser;
 
-    private SharedPreferences preferences;
     private AlarmManager alarmManager;
     private BroadcastReceiver broadcastReceiver;
     private PendingIntent nextAlarmIntent;
@@ -51,18 +43,14 @@ public class StateManager {
 
     private Context context;
     private AlarmState mCurrentState = AlarmState.IDLE;
-    private Cron alarm;
 
-    @Inject StateManager(MediaManager mediaManager, CronParser cronParser) {
+    @Inject StateManager(MediaManager mediaManager, Alarms alarms) {
         this.mediaManager = mediaManager;
-        this.cronParser = cronParser;
+        this.alarms = alarms;
     }
 
     public void initialize(Context context) {
         this.context = context;
-        preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
-        String currentAlarm = preferences.getString(PREF_ALARM_KEY, DEFAULT_ALARM);
-        alarm = cronParser.parse(currentAlarm);
 
         broadcastReceiver = new BroadcastReceiver() {
             @Override
@@ -76,16 +64,18 @@ public class StateManager {
         context.registerReceiver(broadcastReceiver, new IntentFilter(SNOOZE_ACTION));
         context.registerReceiver(broadcastReceiver, new IntentFilter(SLEEP_ACTION));
 
+        alarms.initialize(context);
+
         alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager != null) {
-            // Get date and time for next alarm.
-            ExecutionTime executionTime = ExecutionTime.forCron(alarm);
-            ZonedDateTime nextExecution = executionTime.nextExecution(ZonedDateTime.now()).get();
-            Log.i(TAG, "Scheduling alarm for: " + nextExecution);
-            nextAlarmIntent =
-                    PendingIntent.getBroadcast(context, 0, new Intent(ALARM_ACTION), 0);
-            alarmManager.set(AlarmManager.RTC_WAKEUP,
-                    nextExecution.toInstant().toEpochMilli(), nextAlarmIntent);
+            Optional<ZonedDateTime> alarmTime = alarms.nextAlarm();
+            if (alarmTime.isPresent()) {
+                Log.i(TAG, "Scheduling alarm for: " + alarmTime.get());
+                nextAlarmIntent =
+                        PendingIntent.getBroadcast(context, 0, new Intent(ALARM_ACTION), 0);
+                alarmManager.set(AlarmManager.RTC_WAKEUP,
+                        alarmTime.get().toInstant().toEpochMilli(), nextAlarmIntent);
+            }
         }
 
         mediaManager.initialize(context);
@@ -189,14 +179,14 @@ public class StateManager {
             alarmManager.set(AlarmManager.RTC_WAKEUP,
                     expireAlarm.toInstant().toEpochMilli(), expireAlarmIntent);
 
-            // Get date and time for next alarm.
-            ExecutionTime executionTime = ExecutionTime.forCron(alarm);
-            ZonedDateTime nextExecution = executionTime.nextExecution(now).get();
-            Log.i(TAG, "Scheduling next alarm at: " + nextExecution.toString());
-            nextAlarmIntent =
-                    PendingIntent.getBroadcast(context, 0, new Intent(ALARM_ACTION), 0);
-            alarmManager.set(AlarmManager.RTC_WAKEUP,
-                    nextExecution.toInstant().toEpochMilli(), nextAlarmIntent);
+            Optional<ZonedDateTime> alarmTime = alarms.nextAlarm();
+            if (alarmTime.isPresent()) {
+                Log.i(TAG, "Scheduling next alarm at: " + alarmTime.get());
+                nextAlarmIntent =
+                        PendingIntent.getBroadcast(context, 0, new Intent(ALARM_ACTION), 0);
+                alarmManager.set(AlarmManager.RTC_WAKEUP,
+                        alarmTime.get().toInstant().toEpochMilli(), nextAlarmIntent);
+            }
         } else if (EXPIRE_ALARM_ACTION.equals(intent.getAction()) && mCurrentState == AlarmState.FIRING) {
             Log.i(TAG, "Alarm expired");
             if (snoozeIntent != null) {
