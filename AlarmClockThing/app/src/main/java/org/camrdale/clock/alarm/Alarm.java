@@ -25,8 +25,8 @@ public class Alarm {
         return new Alarm(cronParser, crontab, buzzer);
     }
 
-    public static Alarm fromJson(CronParser cronParser, String jsonString) {
-        return new Alarm(cronParser, "", false);
+    public static Alarm fromJson(CronParser cronParser, org.camrdale.clock.web.Alarm alarm) {
+        return new Alarm(cronParser, alarm.getCrontab(), alarm.getBuzzer());
     }
 
     private Alarm(CronParser cronParser, String crontab, boolean buzzer) {
@@ -36,11 +36,7 @@ public class Alarm {
     }
 
     public String toSaveString() {
-        return "";
-    }
-
-    public String toJsonString() {
-        return "";
+        return crontab + "," + (buzzer ? "1" : "0");
     }
 
     /** Get date and time for next alarm. */

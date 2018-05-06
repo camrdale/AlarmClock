@@ -13,16 +13,17 @@ import java.time.temporal.ChronoField;
 import java.util.Locale;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class DisplayManager {
     private static final String TAG = DisplayManager.class.getSimpleName();
-
-    @Inject DisplayManager() {}
 
     public enum DisplayMode {
         MONTH_DAY,
         HOUR_MINUTE,
-        MINUTE_SECOND
+        MINUTE_SECOND,
+        VERIFICATION_CODE
     }
 
     private AlphanumericDisplay mDisplay;
@@ -31,8 +32,9 @@ public class DisplayManager {
     private Clock clock;
 
     private DisplayMode mDisplayMode = DisplayMode.HOUR_MINUTE;
+    private String verificationCode;
 
-    public void initialize() {
+    @Inject DisplayManager() {
         clock = Clock.systemDefaultZone();
 
         try {
@@ -60,6 +62,12 @@ public class DisplayManager {
 
     public void setDisplayMode(DisplayMode mode) {
         this.mDisplayMode = mode;
+        showCurrentTime();
+    }
+
+    public void setVerificationCodeDisplayMode(String verificationCode) {
+        this.mDisplayMode = DisplayMode.VERIFICATION_CODE;
+        this.verificationCode = verificationCode;
         showCurrentTime();
     }
 
@@ -102,6 +110,9 @@ public class DisplayManager {
                         String.format(Locale.US, "%2d.%02d",
                                 now.get(ChronoField.MINUTE_OF_HOUR),
                                 now.get(ChronoField.SECOND_OF_MINUTE)));
+                break;
+            case VERIFICATION_CODE:
+                updateDisplay(verificationCode);
                 break;
         }
     }

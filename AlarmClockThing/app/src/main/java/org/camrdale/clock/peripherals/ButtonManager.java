@@ -8,7 +8,9 @@ import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
 
 import java.io.IOException;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class ButtonManager {
     private static final String TAG = ButtonManager.class.getSimpleName();
 
@@ -16,9 +18,7 @@ public class ButtonManager {
     private ButtonInputDriver mButtonB;
     private ButtonInputDriver mButtonC;
 
-    @Inject ButtonManager() {}
-
-    public void initialize() {
+    @Inject ButtonManager() {
         try {
             mButtonA = RainbowHat.createButtonAInputDriver(KeyEvent.KEYCODE_A);
             mButtonA.register();

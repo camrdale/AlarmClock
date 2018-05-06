@@ -8,7 +8,9 @@ import com.google.android.things.pio.Gpio;
 import java.io.IOException;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class LedManager {
     private static final String TAG = LedManager.class.getSimpleName();
 
@@ -16,9 +18,7 @@ public class LedManager {
     private Gpio mGreenLed;
     private Gpio mBlueLed;
 
-    @Inject LedManager() {}
-
-    public void initialize() {
+    @Inject LedManager() {
         try {
             mRedLed = RainbowHat.openLedRed();
         } catch (Exception e) {

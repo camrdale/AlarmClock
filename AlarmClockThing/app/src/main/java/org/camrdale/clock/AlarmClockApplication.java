@@ -15,7 +15,10 @@ public class AlarmClockApplication extends Application implements HasActivityInj
     @Override
     public void onCreate() {
         super.onCreate();
-        DaggerAlarmClockApplicationComponent.create().inject(this);
+        DaggerAlarmClockApplicationComponent.builder()
+                .alarmClockApplicationModule(new AlarmClockApplicationModule(this))
+                .build()
+                .inject(this);
     }
 
     @Override

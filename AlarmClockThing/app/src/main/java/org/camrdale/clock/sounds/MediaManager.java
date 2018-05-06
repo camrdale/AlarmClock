@@ -7,16 +7,16 @@ import android.media.MediaPlayer;
 import android.util.Log;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class MediaManager {
     private static final String TAG = MediaManager.class.getSimpleName();
 
+    private final AudioManager audioManager;
     private MediaPlayer mediaPlayer;
-    private AudioManager audioManager;
 
-    @Inject MediaManager() {}
-
-    public void initialize(Context context) {
+    @Inject MediaManager(Context context) {
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         if (audioManager != null) {
             audioManager.setStreamVolume(

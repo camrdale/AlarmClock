@@ -1,43 +1,28 @@
 package org.camrdale.clock.alarm;
 
-import android.content.Context;
-import android.content.SharedPreferences;
-
 import com.cronutils.parser.CronParser;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class Alarms {
     private static final String TAG = Alarms.class.getSimpleName();
 
-    private static final String PREFERENCES_NAME = "org.camrdale.clock.ALARM_PREFERENCES";
-    private static final String PREF_ALARMS_KEY = "currentAlarms";
-    private static final String DEFAULT_ALARM = "*/15 * * * *,0";
+    private final AlarmStorage alarmStorage;
 
-    private final CronParser cronParser;
-    private SharedPreferences preferences;
     private ImmutableList<Alarm> alarms;
 
-    @Inject Alarms(CronParser cronParser) {
-        this.cronParser = cronParser;
-        alarms = ImmutableList.of();
-    }
-
-    public void initialize(Context context) {
-        preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
-        Set<String> alarmSaveStrings =
-                preferences.getStringSet(PREF_ALARMS_KEY, ImmutableSet.of(DEFAULT_ALARM));
-        alarms = alarmSaveStrings.stream()
+    @Inject Alarms(AlarmStorage alarmStorage, CronParser cronParser) {
+        this.alarmStorage = alarmStorage;
+        alarms = alarmStorage.getAlarms().stream()
                 .map(saveString -> Alarm.fromSaveString(cronParser, saveString))
                 .collect(ImmutableList.toImmutableList());
     }
@@ -48,10 +33,7 @@ public class Alarms {
         Set<String> alarmSaveStrings = alarms.stream()
                 .map(Alarm::toSaveString)
                 .collect(Collectors.toSet());
-
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putStringSet(PREF_ALARMS_KEY, alarmSaveStrings);
-        editor.apply();
+        alarmStorage.saveNewAlarms(alarmSaveStrings);
     }
 
     public Optional<ZonedDateTime> nextAlarm() {
@@ -86,9 +68,5 @@ public class Alarms {
 
     public int getNumAlarms() {
         return alarms.size();
-    }
-
-    public List<String> getAlarmJsonStrings() {
-        return alarms.stream().map(Alarm::toJsonString).collect(Collectors.toList());
     }
 }
