@@ -1,4 +1,4 @@
-package org.camrdale.clock.peripherals;
+package org.camrdale.clock.thing.peripherals;
 
 import android.os.CountDownTimer;
 import android.util.Log;

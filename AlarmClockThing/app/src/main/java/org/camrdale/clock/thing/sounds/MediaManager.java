@@ -1,4 +1,4 @@
-package org.camrdale.clock.sounds;
+package org.camrdale.clock.thing.sounds;
 
 import android.content.Context;
 import android.media.AudioAttributes;

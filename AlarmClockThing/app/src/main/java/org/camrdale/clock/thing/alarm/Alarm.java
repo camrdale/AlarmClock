@@ -1,4 +1,4 @@
-package org.camrdale.clock.alarm;
+package org.camrdale.clock.thing.alarm;
 
 import com.cronutils.model.Cron;
 import com.cronutils.model.time.ExecutionTime;
@@ -25,7 +25,7 @@ public class Alarm {
         return new Alarm(cronParser, crontab, buzzer);
     }
 
-    public static Alarm fromJson(CronParser cronParser, org.camrdale.clock.web.Alarm alarm) {
+    public static Alarm fromJson(CronParser cronParser, org.camrdale.clock.thing.web.Alarm alarm) {
         return new Alarm(cronParser, alarm.getCrontab(), alarm.getBuzzer());
     }
 

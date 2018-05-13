@@ -1,4 +1,4 @@
-package org.camrdale.clock.alarm;
+package org.camrdale.clock.thing.alarm;
 
 import android.content.Context;
 import android.content.SharedPreferences;

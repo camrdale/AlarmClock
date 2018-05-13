@@ -1,4 +1,4 @@
-package org.camrdale.clock.web;
+package org.camrdale.clock.thing.web;
 
 import android.content.Context;
 import android.util.Log;

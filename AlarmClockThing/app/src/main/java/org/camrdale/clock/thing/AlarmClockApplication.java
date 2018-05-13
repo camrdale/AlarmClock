@@ -1,4 +1,4 @@
-package org.camrdale.clock;
+package org.camrdale.clock.thing;
 
 import android.app.Activity;
 import android.app.Application;

@@ -1,4 +1,4 @@
-package org.camrdale.clock.state;
+package org.camrdale.clock.thing.state;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -11,14 +11,14 @@ import android.util.Log;
 
 import com.cronutils.parser.CronParser;
 
-import org.camrdale.clock.alarm.Alarm;
-import org.camrdale.clock.alarm.AlarmStorage;
-import org.camrdale.clock.alarm.Alarms;
-import org.camrdale.clock.peripherals.DisplayManager;
-import org.camrdale.clock.sounds.MediaManager;
-import org.camrdale.clock.web.CheckInResponse;
-import org.camrdale.clock.web.RegisterResponse;
-import org.camrdale.clock.web.WebManager;
+import org.camrdale.clock.thing.alarm.Alarm;
+import org.camrdale.clock.thing.alarm.AlarmStorage;
+import org.camrdale.clock.thing.alarm.Alarms;
+import org.camrdale.clock.thing.peripherals.DisplayManager;
+import org.camrdale.clock.thing.sounds.MediaManager;
+import org.camrdale.clock.thing.web.CheckInResponse;
+import org.camrdale.clock.thing.web.RegisterResponse;
+import org.camrdale.clock.thing.web.WebManager;
 
 import java.time.ZonedDateTime;
 import java.util.Locale;

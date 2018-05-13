@@ -1,4 +1,4 @@
-package org.camrdale.clock;
+package org.camrdale.clock.thing;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -6,6 +6,8 @@ import android.support.annotation.NonNull;
 import com.cronutils.model.CronType;
 import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.cronutils.parser.CronParser;
+
+import org.camrdale.clock.thing.HomeActivity;
 
 import javax.inject.Singleton;
 

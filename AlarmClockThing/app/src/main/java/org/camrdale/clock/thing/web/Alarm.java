@@ -1,4 +1,4 @@
-package org.camrdale.clock.web;
+package org.camrdale.clock.thing.web;
 
 public class Alarm {
     private String crontab;

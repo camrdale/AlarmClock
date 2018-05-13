@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 27
     defaultConfig {
-        applicationId "org.camrdale.clock"
+        applicationId "org.camrdale.clock.thing"
         minSdkVersion 27
         targetSdkVersion 27
         versionCode 1

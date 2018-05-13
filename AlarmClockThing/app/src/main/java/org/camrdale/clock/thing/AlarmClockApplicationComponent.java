@@ -1,8 +1,8 @@
-package org.camrdale.clock;
+package org.camrdale.clock.thing;
 
 import android.content.Context;
 
-import org.camrdale.clock.web.WebModule;
+import org.camrdale.clock.thing.web.WebModule;
 
 import javax.inject.Singleton;
 

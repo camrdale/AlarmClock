@@ -1,15 +1,15 @@
-package org.camrdale.clock;
+package org.camrdale.clock.thing;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.KeyEvent;
 
-import org.camrdale.clock.peripherals.ButtonManager;
-import org.camrdale.clock.peripherals.DisplayManager;
-import org.camrdale.clock.peripherals.LedManager;
-import org.camrdale.clock.sounds.MediaManager;
-import org.camrdale.clock.state.StateManager;
-import org.camrdale.clock.web.WebManager;
+import org.camrdale.clock.thing.peripherals.ButtonManager;
+import org.camrdale.clock.thing.peripherals.DisplayManager;
+import org.camrdale.clock.thing.peripherals.LedManager;
+import org.camrdale.clock.thing.sounds.MediaManager;
+import org.camrdale.clock.thing.state.StateManager;
+import org.camrdale.clock.thing.web.WebManager;
 
 import javax.inject.Inject;
 
