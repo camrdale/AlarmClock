@@ -1,10 +1,32 @@
 <html>
 <head>
-  <link rel="stylesheet" href="alarms.css" />
+	<!-- Firebase App is always required and must be first -->
+	<script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-app.js"></script>
+	<!-- Add additional services you want to use -->
+	<script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-auth.js"></script>
+	<!-- Comment out (or don't include) services you don't want to use -->
+	<!-- <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-database.js"></script> -->
+	<!-- <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-firestore.js"></script> -->
+	<!-- <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-messaging.js"></script> -->
+	<!-- <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-functions.js"></script> -->
+	<!-- <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-storage.js"></script> -->
+
+	<script src="https://cdn.firebase.com/libs/firebaseui/2.5.1/firebaseui.js"></script>
+	<link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.5.1/firebaseui.css" />
+
   <script src="alarms.js"></script>
+  <link type="text/css" rel="stylesheet" href="alarms.css" />
 </head>
 
 <body>
+<div id="logged-out">
+  <h1>Alarm Clocks</h1>
+  <h3>Sign in to access your alarms</h3>
+  <div id="firebaseui-auth-container"></div>
+</div>
+
+<div id="logged-in">
+  <h1>Welcome, <span id="user"></span>!</h1>
   <div id="clocks">
   </div>
   <p>Current time: <span id="current_time">?</span></p>
@@ -13,6 +35,10 @@
   </ul>
 	<p><a id="more_alarms" href="#">Show 10 more alarms</a></p>
 	<p>Don't see your alarm clock here? <a id="show_claim_modal" href="#">Claim it!</a></p>
+	<form>
+	  <input type="button" value="Logout" id="sign_out">
+	</form>
+</div>
 
 	<!-- Modal dialog box for claiming an alarm clock. -->
 	<div id="claim_modal" class="modal">

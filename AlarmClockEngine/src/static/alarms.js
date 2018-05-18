@@ -4,6 +4,9 @@ const buzzerClassName = "buzzerInput";
 const defaultCrontab = "* * * * *";
 const defaultBuzzer = false;
 
+// This is passed into the server to authenticate the user.
+var userIdToken = null;
+
 var numAlarmsDisplay = 10;
 
 window.onload = function() {
@@ -33,7 +36,74 @@ window.onload = function() {
             edit_modal.style.display = "none";
         }
     }
-    loadData({});
+
+    document.getElementById("sign_out").addEventListener("click", firebaseLogout);
+    
+    configureFirebaseLogin();
+    configureFirebaseLoginWidget();
+}
+
+// Firebase log-in
+function configureFirebaseLogin() {
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyCTRgJt5mQyhfZBaNN_UXMo2-wiyfrU4R4",
+        authDomain: "alarmclock-202319.firebaseapp.com",
+        databaseURL: "https://alarmclock-202319.firebaseio.com",
+        projectId: "alarmclock-202319",
+        storageBucket: "alarmclock-202319.appspot.com",
+        messagingSenderId: "50558696986"
+    };
+    firebase.initializeApp(config);
+
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            document.getElementById("logged-out").style.display = "none";
+            var name = user.displayName;
+
+            /* If the provider gives a display name, use the name for the
+      personal welcome message. Otherwise, use the user's email. */
+            var welcomeName = name ? name : user.email;
+
+            user.getIdToken().then(function(idToken) {
+                userIdToken = idToken;
+
+                /* Now that the user is authenicated, fetch the data. */
+                loadData({});
+
+                document.getElementById("user").innerHTML = welcomeName;
+                document.getElementById("logged-in").style.display = "block";
+            });
+        } else {
+            document.getElementById("logged-in").style.display = "none";
+            document.getElementById("logged-out").style.display = "block";
+        }
+    });
+}
+
+//Firebase log-in widget
+function configureFirebaseLoginWidget() {
+    var uiConfig = {
+        'signInSuccessUrl': '/',
+        'signInOptions': [
+            firebase.auth.GoogleAuthProvider.PROVIDER_ID
+        ],
+        // Terms of service url
+        'tosUrl': 'https://clock.camrdale.org/terms.html',
+    };
+
+    var ui = new firebaseui.auth.AuthUI(firebase.auth());
+    ui.start('#firebaseui-auth-container', uiConfig);
+}
+
+function firebaseLogout(event) {
+    event.preventDefault();
+
+    firebase.auth().signOut().then(function() {
+      console.log("Sign out successful");
+    }, function(error) {
+      console.log(error);
+    });
 }
 
 function showClaimModal(event) {
@@ -56,6 +126,7 @@ function claimClock(event) {
       credentials: "same-origin",
       body: JSON.stringify(data),
       headers: new Headers({
+        "Authorization": "Bearer " + userIdToken,
         "Content-Type": "application/json"
       })
     }).then(res => res.json())
@@ -100,6 +171,7 @@ function editClock(event) {
       credentials: "same-origin",
       body: JSON.stringify(data),
       headers: new Headers({
+        "Authorization": "Bearer " + userIdToken,
         "Content-Type": "application/json"
       })
     }).then(res => res.json())
@@ -131,6 +203,7 @@ function deleteClock(event) {
       credentials: "same-origin",
       body: JSON.stringify(data),
       headers: new Headers({
+        "Authorization": "Bearer " + userIdToken,
         "Content-Type": "application/json"
       })
     }).then(res => res.json())
@@ -179,6 +252,7 @@ function loadData(data) {
       credentials: "same-origin",
       body: JSON.stringify(data),
       headers: new Headers({
+        "Authorization": "Bearer " + userIdToken,
         "Content-Type": "application/json"
       })
     }).then(res => handleJsonResponse(res))

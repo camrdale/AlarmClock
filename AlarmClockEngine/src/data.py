@@ -9,17 +9,21 @@ import pytz
 import uuid
 import webapp2
 
-from google.appengine.api import users
 from google.appengine.ext import ndb
 
 import models
+import utils
 
 NUM_ALARMS_DISPLAY = 10
+
 
 class JsonEndpoint(webapp2.RequestHandler):
 
     def post(self):
-        user = models.User.get(users.get_current_user())
+        user = utils.getLoggedInUser(self.request.headers)
+        if not user:
+            self.abort(401)
+        
         content = self.request.body.decode('utf-8')
         logging.info('Received content: ' + content)
         inputData = json.loads(content)

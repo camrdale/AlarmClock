@@ -7,15 +7,17 @@ import logging
 import uuid
 import webapp2
 
-from google.appengine.api import users
-
 import models
+import utils
 
 
 class JsonEndpoint(webapp2.RequestHandler):
 
     def post(self):
-        user = models.User.get(users.get_current_user())
+        user = utils.getLoggedInUser(self.request.headers)
+        if not user:
+            self.abort(401)
+
         content = self.request.body.decode('utf-8')
         logging.info('Received content: ' + content)
         inputData = json.loads(content)

@@ -38,8 +38,8 @@ class Alarm(ndb.Model):
 
 class User(ndb.Model):
     @classmethod
-    def get(cls, current_user):
-        return cls.get_or_insert(current_user.user_id())
+    def get(cls, subject):
+        return cls.get_or_insert(subject)
 
 
 class UserClock(ndb.Model):

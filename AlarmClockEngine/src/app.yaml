@@ -6,6 +6,9 @@ libraries:
 - name: pytz
   version: "2017.2"
   
+env_variables:
+  FIREBASE_PROJECT_ID: 'alarmclock-202319'
+  
 handlers:
 - url: /register
   script: register.app
@@ -14,19 +17,15 @@ handlers:
   script: checkin.app
 
 - url: /claim
-  login: required
   script: claim.app
 
 - url: /edit
-  login: required
   script: edit.app
 
 - url: /delete
-  login: required
   script: delete.app
 
 - url: /data
-  login: required
   script: data.app
 
 - url: /cleanup
@@ -39,7 +38,6 @@ handlers:
   upload: static/(.*\.css)
 
 - url: /(.*\.html)
-  login: required
   mime_type: text/html
   static_files: static/\1
   upload: static/(.*\.html)
@@ -68,20 +66,17 @@ handlers:
 
 # index files
 - url: /(.+)/
-  login: required
   static_files: static/\1/index.html
   upload: static/(.+)/index.html
   expiration: "15m"
 
 - url: /(.+)
-  login: required
   static_files: static/\1/index.html
   upload: static/(.+)/index.html
   expiration: "15m"
 
 # site root
 - url: /
-  login: required
   static_files: static/index.html
   upload: static/index.html
   expiration: "15m"
