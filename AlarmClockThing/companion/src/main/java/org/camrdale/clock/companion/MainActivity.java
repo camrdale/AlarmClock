@@ -3,36 +3,46 @@ package org.camrdale.clock.companion;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.LinearLayoutManager;
-import android.util.Log;
-import android.view.View;
-import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.IdpResponse;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.common.collect.ImmutableList;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.gson.GsonBuilder;
+import com.squareup.picasso.Picasso;
 
 import org.camrdale.clock.shared.nearby.WifiConnectionRequest;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -41,18 +51,28 @@ public class MainActivity extends AppCompatActivity
     private static final int PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 23;
     private static final int CONNECT_ACTIVITY_RESULT = 87;
     private static final int WIFI_ACTIVITY_RESULT = 78;
+    private static final int RC_SIGN_IN = 123;
+
+    // Chosen Firebase authentication providers
+    private static final List<AuthUI.IdpConfig> FIREBASE_PROVIDERS = ImmutableList.of(
+            new AuthUI.IdpConfig.GoogleBuilder().build());
 
     private String endpointId;
-    private LinearLayoutManager mLayoutManager;
+    private FirebaseAuth mAuth;
+    private TextView navHeaderName;
+    private TextView navHeaderEmail;
+    private ImageView navHeaderImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        mAuth = FirebaseAuth.getInstance();
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -61,14 +81,19 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        NavigationView navigationView = findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        View parentView = navigationView.getHeaderView(0);
+        navHeaderName = parentView.findViewById(R.id.navHeaderName);
+        navHeaderEmail = parentView.findViewById(R.id.navHeaderEmail);
+        navHeaderImage = parentView.findViewById(R.id.navHeaderImage);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -77,27 +102,57 @@ public class MainActivity extends AppCompatActivity
             // Should we show an explanation?
             //if (ActivityCompat.shouldShowRequestPermissionRationale(this,
             //        Manifest.permission.ACCESS_COARSE_LOCATION)) {
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
+            // Show an explanation to the user *asynchronously* -- don't block
+            // this thread waiting for the user's response! After the user
+            // sees the explanation, try again to request the permission.
             //} else {
-                // No explanation needed; request the permission
-                Log.i(TAG, "Requsting location permission");
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                        PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+            // No explanation needed; request the permission
+            Log.i(TAG, "Requesting location permission");
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                    PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
 
-                // PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
+            // PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION is an
+            // app-defined int constant. The callback method gets the
+            // result of the request.
             //}
         }
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+
+        // Check if user is signed in (non-null) and update UI accordingly.
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            // Create and launch sign-in intent
+            startActivityForResult(
+                    AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                            .setAvailableProviders(FIREBASE_PROVIDERS)
+                            .build(),
+                    RC_SIGN_IN);
+        } else {
+            updateUiForLoggedInUser(currentUser);
+        }
+    }
+
+    private void updateUiForLoggedInUser(FirebaseUser user) {
+        Log.i(TAG, "Logged in user: " + user.getUid() + ", "  + user.getDisplayName() + ", " + user.getEmail());
+        String name = user.getDisplayName();
+        String email = user.getEmail();
+        Uri photoUrl = user.getPhotoUrl();
+
+        navHeaderName.setText(name);
+        navHeaderEmail.setText(email);
+        Picasso.get().load(photoUrl).into(navHeaderImage);
+    }
+
+    @Override
     public void onRequestPermissionsResult(
             int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
-        Log.i(TAG, "Requsting permission result: " + requestCode + ", " + Arrays.toString(grantResults));
+        Log.i(TAG, "Requesting permission result: " + requestCode + ", " + Arrays.toString(grantResults));
         switch (requestCode) {
             case PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION: {
                 // If request is cancelled, the result arrays are empty.
@@ -150,6 +205,21 @@ public class MainActivity extends AppCompatActivity
                 connectToWifi(ssid, password);
             } else {
                 Log.w(TAG, "Wifi activity cancelled");
+            }
+        } else if (requestCode == RC_SIGN_IN) {
+            IdpResponse response = IdpResponse.fromResultIntent(data);
+
+            if (resultCode == RESULT_OK) {
+                // Successfully signed in
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if (user != null) {
+                    updateUiForLoggedInUser(user);
+                }
+            } else {
+                // Sign in failed. If response is null the user canceled the
+                // sign-in flow using the back button. Otherwise check
+                // response.getError().getErrorCode() and handle the error.
+                // ...
             }
         }
     }
@@ -229,6 +299,14 @@ public class MainActivity extends AppCompatActivity
 
         } else if (id == R.id.nav_send) {
 
+        } else if (id == R.id.nav_logout) {
+            AuthUI.getInstance()
+                    .signOut(this)
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        public void onComplete(@NonNull Task<Void> task) {
+                            finish();
+                        }
+                    });
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
