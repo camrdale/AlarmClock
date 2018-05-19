@@ -164,7 +164,11 @@ public class HomeActivity extends Activity {
         Log.i(TAG, "Connecting to Wifi network: " + networkSsid);
         WifiConfiguration wifiConfiguration = new WifiConfiguration();
         wifiConfiguration.SSID = "\"" + networkSsid + "\"";
-        wifiConfiguration.preSharedKey = "\"" + networkPassword + "\"";
+        if (networkPassword == null || networkPassword.isEmpty()) {
+            wifiConfiguration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
+        } else {
+            wifiConfiguration.preSharedKey = "\"" + networkPassword + "\"";
+        }
 
         int networkId = manager.addNetwork(wifiConfiguration);
         Log.i(TAG, "Added Wifi network: " + networkId);
