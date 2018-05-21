@@ -22,6 +22,7 @@ import org.camrdale.clock.thing.web.CheckInResponse;
 import org.camrdale.clock.thing.web.RegisterForUserResponse;
 import org.camrdale.clock.thing.web.WebManager;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.TimeZone;
@@ -37,9 +38,12 @@ public class StateManager {
 
     private static final String ALARM_ACTION = "org.camrdale.clock.ALARM";
     private static final String EXPIRE_ALARM_ACTION = "org.camrdale.clock.EXPIRE_ALARM";
-    private static final String EXPIRE_REGISTRATION_ACTION = "org.camrdale.clock.EXPIRE_REGISTRATION";
     private static final String SNOOZE_ACTION = "org.camrdale.clock.SNOOZE";
     private static final String SLEEP_ACTION = "org.camrdale.clock.SLEEP";
+
+    private static final Duration ALARM_EXPIRY_TIME = Duration.ofMinutes(60);
+    private static final Duration SNOOZE_EXPIRY_TIME = Duration.ofMinutes(9);
+    private static final Duration SLEEP_EXPIRY_TIME = Duration.ofMinutes(60);
 
     public enum AlarmState {
         IDLE,
@@ -63,11 +67,9 @@ public class StateManager {
     private PendingIntent snoozeIntent;
     private PendingIntent sleepIntent;
     private PendingIntent expireAlarmIntent;
-    private PendingIntent expireRegistrationIntent;
 
     private AlarmState mCurrentState = AlarmState.IDLE;
     private String lastRevision = "";
-    private boolean registering = false;
 
     @Inject StateManager(
             MediaManager mediaManager,
@@ -92,7 +94,6 @@ public class StateManager {
         };
         context.registerReceiver(broadcastReceiver, new IntentFilter(ALARM_ACTION));
         context.registerReceiver(broadcastReceiver, new IntentFilter(EXPIRE_ALARM_ACTION));
-        context.registerReceiver(broadcastReceiver, new IntentFilter(EXPIRE_REGISTRATION_ACTION));
         context.registerReceiver(broadcastReceiver, new IntentFilter(SNOOZE_ACTION));
         context.registerReceiver(broadcastReceiver, new IntentFilter(SLEEP_ACTION));
 
@@ -100,14 +101,10 @@ public class StateManager {
         if (alarmManager != null) {
             scheduleNextAlarm();
         }
-        scheduleCheckIns(60);
-    }
-
-    private void scheduleCheckIns(int seconds) {
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-        countDownTimer = new CountDownTimer(Long.MAX_VALUE, seconds * 1000) {
+        countDownTimer = new CountDownTimer(Long.MAX_VALUE, 60 * 1000) {
             // This is called after every 60 sec interval.
             public void onTick(long millisUntilFinished) {
                 checkIn();
@@ -135,7 +132,7 @@ public class StateManager {
                 }
 
                 ZonedDateTime now = ZonedDateTime.now();
-                ZonedDateTime expireSleep = now.plusMinutes(10);
+                ZonedDateTime expireSleep = now.plus(SLEEP_EXPIRY_TIME);
                 Log.i(TAG, "Scheduling expiry of sleep: " + expireSleep);
                 sleepIntent =
                         PendingIntent.getBroadcast(context, 0, new Intent(SLEEP_ACTION), 0);
@@ -167,7 +164,7 @@ public class StateManager {
                 mediaManager.stopPlaying();
 
                 ZonedDateTime now = ZonedDateTime.now();
-                ZonedDateTime expireSnooze = now.plusMinutes(2);
+                ZonedDateTime expireSnooze = now.plus(SNOOZE_EXPIRY_TIME);
                 Log.i(TAG, "Scheduling expiry of snooze: " + expireSnooze);
                 snoozeIntent =
                         PendingIntent.getBroadcast(context, 0, new Intent(SNOOZE_ACTION), 0);
@@ -235,10 +232,6 @@ public class StateManager {
         }
 
         if (response.getClaimed()) {
-            if (registering) {
-                Log.i(TAG, "Clock is now claimed");
-                registrationComplete();
-            }
             if (response.getAlarms() != null) {
                 Log.i(TAG, "Rescheduling new alarms: " + response.getAlarms());
                 alarms.rescheduleAll(response.getAlarms().stream()
@@ -276,16 +269,6 @@ public class StateManager {
         }
     }
 
-    private void registrationComplete() {
-        Log.i(TAG, "Registration process is complete");
-        registering = false;
-        if (expireRegistrationIntent != null) {
-            expireRegistrationIntent.cancel();
-            expireRegistrationIntent = null;
-        }
-        scheduleCheckIns(60);
-    }
-
     private void broadcastReceived(Intent intent) {
         Log.i(TAG, "Received broadcast: " + intent.toString());
         if (ALARM_ACTION.equals(intent.getAction())) {
@@ -307,7 +290,7 @@ public class StateManager {
                 mediaManager.startPlaying();
 
                 ZonedDateTime now = ZonedDateTime.now();
-                ZonedDateTime expireAlarm = now.plusMinutes(5);
+                ZonedDateTime expireAlarm = now.plus(ALARM_EXPIRY_TIME);
                 Log.i(TAG, "Scheduling expiry of alarm: " + expireAlarm);
                 expireAlarmIntent =
                         PendingIntent.getBroadcast(context, 0, new Intent(EXPIRE_ALARM_ACTION), 0);
@@ -332,9 +315,6 @@ public class StateManager {
             Log.i(TAG, "Sleep expired");
             mCurrentState = AlarmState.IDLE;
             mediaManager.stopPlaying();
-        } else if (EXPIRE_REGISTRATION_ACTION.equals(intent.getAction())) {
-            Log.i(TAG, "Registration expired");
-            registrationComplete();
         }
     }
 
@@ -354,10 +334,6 @@ public class StateManager {
         if (expireAlarmIntent != null) {
             expireAlarmIntent.cancel();
             expireAlarmIntent = null;
-        }
-        if (expireRegistrationIntent != null) {
-            expireRegistrationIntent.cancel();
-            expireRegistrationIntent = null;
         }
         context.unregisterReceiver(broadcastReceiver);
     }

@@ -113,7 +113,7 @@ public class NearbyManager extends ConnectionLifecycleCallback {
                     signIn(signInRequest.getAuthenticationToken());
                 }
             } else if (payloadString.startsWith(RegisterRequest.class.getSimpleName() + ":")) {
-                RegisterRequest rebootRequest = new Gson().fromJson(payloadString.substring(RegisterRequest.class.getSimpleName().length() + 1), RegisterRequest.class);
+                RegisterRequest registerRequest = new Gson().fromJson(payloadString.substring(RegisterRequest.class.getSimpleName().length() + 1), RegisterRequest.class);
                 register();
             } else if (payloadString.startsWith(RebootRequest.class.getSimpleName() + ":")) {
                 RebootRequest rebootRequest = new Gson().fromJson(payloadString.substring(RebootRequest.class.getSimpleName().length() + 1), RebootRequest.class);
