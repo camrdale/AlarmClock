@@ -29,14 +29,11 @@ public class DisplayManager {
     private AlphanumericDisplay mDisplay;
 
     private CountDownTimer countDownTimer;
-    private Clock clock;
 
     private DisplayMode mDisplayMode = DisplayMode.HOUR_MINUTE;
     private String verificationCode;
 
     @Inject DisplayManager() {
-        clock = Clock.systemDefaultZone();
-
         try {
             mDisplay = RainbowHat.openDisplay();
             mDisplay.setEnabled(true);
@@ -91,7 +88,7 @@ public class DisplayManager {
     }
 
     private void showCurrentTime() {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now(Clock.systemDefaultZone());
         switch(mDisplayMode) {
             case MONTH_DAY:
                 updateDisplay(

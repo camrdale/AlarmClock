@@ -18,7 +18,6 @@ public class AlarmStorage {
 
     private static final String PREFERENCES_NAME = "org.camrdale.clock.ALARM_PREFERENCES";
     private static final String PREF_ALARMS_KEY = "currentAlarms";
-    private static final String DEFAULT_ALARM = "30 8 * * MON-FRI,0";
     private static final String PREF_WEB_KEY_KEY = "webKey";
 
     private SharedPreferences preferences;
@@ -28,7 +27,7 @@ public class AlarmStorage {
     @Inject AlarmStorage(Context context) {
         preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
         alarmSaveStrings =
-                preferences.getStringSet(PREF_ALARMS_KEY, ImmutableSet.of(DEFAULT_ALARM));
+                preferences.getStringSet(PREF_ALARMS_KEY, ImmutableSet.of());
         Log.i(TAG, "Loaded alarms from storage: " + alarmSaveStrings);
         webKey = preferences.getString(PREF_WEB_KEY_KEY, null);
         Log.i(TAG, "Loaded webKey from storage: " + webKey);

@@ -3,6 +3,7 @@ package org.camrdale.clock.thing.web;
 import android.util.Log;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
 import com.android.volley.ParseError;
 import com.android.volley.Request;
@@ -17,6 +18,8 @@ import java.util.Map;
 
 class GsonRequest<Req, Resp> extends Request<Resp> {
     private static final String TAG = GsonRequest.class.getSimpleName();
+
+    private static final int DEFAULT_TIMEOUT_MS = 10 * 1000;
 
     private final Gson gson;
     private final Class<Resp> responseClass;
@@ -40,6 +43,10 @@ class GsonRequest<Req, Resp> extends Request<Resp> {
         this.headers = headers;
         this.request = request;
         this.listener = listener;
+        this.setRetryPolicy(new DefaultRetryPolicy(
+                DEFAULT_TIMEOUT_MS,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
     }
 
     @Override

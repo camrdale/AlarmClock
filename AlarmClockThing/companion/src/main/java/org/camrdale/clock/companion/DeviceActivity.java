@@ -1,12 +1,13 @@
 package org.camrdale.clock.companion;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -20,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -35,23 +37,37 @@ import com.google.android.gms.tasks.Task;
 import com.google.common.collect.ImmutableList;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
 
+import org.camrdale.clock.shared.nearby.FactoryResetRequest;
+import org.camrdale.clock.shared.nearby.FactoryResetResponse;
+import org.camrdale.clock.shared.nearby.RebootRequest;
+import org.camrdale.clock.shared.nearby.RebootResponse;
+import org.camrdale.clock.shared.nearby.RegisterRequest;
+import org.camrdale.clock.shared.nearby.RegisterResponse;
+import org.camrdale.clock.shared.nearby.SignInRequest;
+import org.camrdale.clock.shared.nearby.SignInResponse;
+import org.camrdale.clock.shared.nearby.StatusBroadcast;
 import org.camrdale.clock.shared.nearby.WifiConnectionRequest;
+import org.camrdale.clock.shared.nearby.WifiConnectionResponse;
+import org.joda.time.Duration;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity
+public class DeviceActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = DeviceActivity.class.getSimpleName();
 
     private static final int PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 23;
     private static final int CONNECT_ACTIVITY_RESULT = 87;
     private static final int WIFI_ACTIVITY_RESULT = 78;
     private static final int RC_SIGN_IN = 123;
+    private static final int RC_DEVICE_SIGN_IN = 125;
 
     // Chosen Firebase authentication providers
     private static final List<AuthUI.IdpConfig> FIREBASE_PROVIDERS = ImmutableList.of(
@@ -66,17 +82,17 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_device);
         mAuth = FirebaseAuth.getInstance();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        Button deviceConnect = findViewById(R.id.device_connect_button);
+        deviceConnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, ConnectActivity.class);
+                Intent intent = new Intent(DeviceActivity.this, ConnectActivity.class);
                 startActivityForResult(intent, CONNECT_ACTIVITY_RESULT);
             }
         });
@@ -178,8 +194,8 @@ public class MainActivity extends AppCompatActivity
                 String endpointId = data.getStringExtra(ConnectActivity.NEARBY_ENDPOINT_ID);
                 String endpointName = data.getStringExtra(ConnectActivity.NEARBY_ENDPOINT_NAME);
                 Log.i(TAG, "Received connect activity result: " + endpointId + ", " + endpointName);
-                Nearby.getConnectionsClient(MainActivity.this).acceptConnection(endpointId, mPayloadCallback);
-                MainActivity.this.endpointId = endpointId;
+                Nearby.getConnectionsClient(DeviceActivity.this).acceptConnection(endpointId, mPayloadCallback);
+                DeviceActivity.this.endpointId = endpointId;
 
                 findViewById(R.id.no_devices_view).setVisibility(View.INVISIBLE);
                 findViewById(R.id.deviceView).setVisibility(View.VISIBLE);
@@ -190,8 +206,41 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onClick(View v) {
                         Log.i(TAG, "Launching wifi activity");
-                        Intent intent = new Intent(MainActivity.this, WifiActivity.class);
+                        Intent intent = new Intent(DeviceActivity.this, WifiActivity.class);
                         startActivityForResult(intent, WIFI_ACTIVITY_RESULT);
+                    }
+                });
+                Button mSigninButton = findViewById(R.id.device_signin_button);
+                mSigninButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        startActivityForResult(
+                                AuthUI.getInstance()
+                                        .createSignInIntentBuilder()
+                                        .setAvailableProviders(FIREBASE_PROVIDERS)
+                                        .build(),
+                                RC_DEVICE_SIGN_IN);
+                    }
+                });
+                Button mRegisterButton = findViewById(R.id.device_register_button);
+                mRegisterButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        sendPayload(new RegisterRequest());
+                    }
+                });
+                Button mRebootButton = findViewById(R.id.device_reboot_button);
+                mRebootButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        sendPayload(new RebootRequest());
+                    }
+                });
+                Button mFactoryResetButton = findViewById(R.id.device_reset_button);
+                mFactoryResetButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        sendPayload(new FactoryResetRequest());
                     }
                 });
             } else {
@@ -202,14 +251,18 @@ public class MainActivity extends AppCompatActivity
                 String ssid = data.getStringExtra(WifiActivity.WIFI_SSID);
                 String password = data.getStringExtra(WifiActivity.WIFI_PASSWORD);
                 Log.i(TAG, "Received wifi activity result: " + ssid + ", " + password);
-                connectToWifi(ssid, password);
+                sendPayload(new WifiConnectionRequest(ssid, password));
             } else {
                 Log.w(TAG, "Wifi activity cancelled");
             }
         } else if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
+            Log.i(TAG, "Received data: " + data.getExtras());
+            Log.i(TAG, "Received response: " + response.getProviderType() + ", " + response.getError());
 
             if (resultCode == RESULT_OK) {
+                Log.i(TAG, "Google sign in token: " + response.getIdpToken());
+
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
                 if (user != null) {
@@ -220,6 +273,29 @@ public class MainActivity extends AppCompatActivity
                 // sign-in flow using the back button. Otherwise check
                 // response.getError().getErrorCode() and handle the error.
                 // ...
+                Log.w(TAG, "Received signin error: " + response.getProviderType() + ", " + response.getError());
+            }
+        } else if (requestCode == RC_DEVICE_SIGN_IN) {
+            IdpResponse response = IdpResponse.fromResultIntent(data);
+            Log.i(TAG, "Received data: " + data.getExtras());
+            Log.i(TAG, "Received response: " + response.getProviderType() + ", " + response.getError());
+
+            if (resultCode == RESULT_OK) {
+                String userIdToken = response.getIdpToken();
+                Log.i(TAG, "Directing device to signin with token: " + userIdToken);
+                sendPayload(new SignInRequest(userIdToken));
+
+                // Successfully signed in
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                if (user != null) {
+                    updateUiForLoggedInUser(user);
+                }
+            } else {
+                // Sign in failed. If response is null the user canceled the
+                // sign-in flow using the back button. Otherwise check
+                // response.getError().getErrorCode() and handle the error.
+                // ...
+                Log.w(TAG, "Received signin error: " + response.getProviderType() + ", " + response.getError());
             }
         }
     }
@@ -227,25 +303,101 @@ public class MainActivity extends AppCompatActivity
     private PayloadCallback mPayloadCallback = new PayloadCallback() {
         @Override
         public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
-            Log.i(TAG, "Received nearby payload: " + new String(payload.asBytes(), StandardCharsets.UTF_8));
-
+            String payloadString = new String(payload.asBytes(), StandardCharsets.UTF_8);
+            Log.i(TAG, "Received nearby payload: " + payloadString);
+            if (payloadString.startsWith(StatusBroadcast.class.getSimpleName() + ":")) {
+                StatusBroadcast status = new Gson().fromJson(payloadString.substring(StatusBroadcast.class.getSimpleName().length() + 1), StatusBroadcast.class);
+                updateDeviceStatus(status);
+            } else if (payloadString.startsWith(RegisterResponse.class.getSimpleName() + ":")) {
+                RegisterResponse response = new Gson().fromJson(payloadString.substring(RegisterResponse.class.getSimpleName().length() + 1), RegisterResponse.class);
+                if (!response.getSuccess()) {
+                    showError(getString(R.string.register_button), response.getFailureReason());
+                }
+            } else if (payloadString.startsWith(FactoryResetResponse.class.getSimpleName() + ":")) {
+                FactoryResetResponse response = new Gson().fromJson(payloadString.substring(FactoryResetResponse.class.getSimpleName().length() + 1), FactoryResetResponse.class);
+                if (!response.getSuccess()) {
+                    showError(getString(R.string.reset_button), response.getFailureReason());
+                }
+            } else if (payloadString.startsWith(RebootResponse.class.getSimpleName() + ":")) {
+                RebootResponse response = new Gson().fromJson(payloadString.substring(RebootResponse.class.getSimpleName().length() + 1), RebootResponse.class);
+                if (!response.getSuccess()) {
+                    showError(getString(R.string.reboot_button), response.getFailureReason());
+                }
+            } else if (payloadString.startsWith(SignInResponse.class.getSimpleName() + ":")) {
+                SignInResponse response = new Gson().fromJson(payloadString.substring(SignInResponse.class.getSimpleName().length() + 1), SignInResponse.class);
+                if (!response.getSuccess()) {
+                    showError(getString(R.string.sign_in_button), response.getFailureReason());
+                }
+            } else if (payloadString.startsWith(WifiConnectionResponse.class.getSimpleName() + ":")) {
+                WifiConnectionResponse response = new Gson().fromJson(payloadString.substring(WifiConnectionResponse.class.getSimpleName().length() + 1), WifiConnectionResponse.class);
+                if (!response.getSuccess()) {
+                    showError(getString(R.string.setup_wifi_button), response.getFailureReason());
+                }
+            }
         }
 
         @Override
         public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate payloadTransferUpdate) {
-
         }
     };
 
-    private void connectToWifi(String neworkSsid, String networkPassword) {
+    private void showError(String operation, String error) {
+        new AlertDialog.Builder(this)
+                .setTitle("Failed to " + operation)
+                .setMessage("The " + operation + " failed with error message:\n" + error)
+                .setCancelable(false)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }})
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    private void updateDeviceStatus(StatusBroadcast status) {
+        if (status.getWifiConnected() != null) {
+            ((CheckBox) findViewById(R.id.deviceWifiCheckbox)).setChecked(status.getWifiConnected());
+        }
+        if (status.getWifiNetworkSsid() != null) {
+            ((TextView) findViewById(R.id.deviceWifiName)).setText(status.getWifiNetworkSsid());
+        }
+        if (status.getSignedIn() != null) {
+            ((CheckBox) findViewById(R.id.deviceSignedinCheckbox)).setChecked(status.getSignedIn());
+        }
+        if (status.getSignedInUserName() != null) {
+            ((TextView) findViewById(R.id.deviceSignedinName)).setText(status.getSignedInUserName());
+        }
+        if (status.getSignedInUserEmail() != null) {
+            ((TextView) findViewById(R.id.deviceSignedinEmail)).setText(status.getSignedInUserEmail());
+        }
+        if (status.getUpTimeMillis() != null) {
+            Duration upTimeDuration = Duration.millis(status.getUpTimeMillis());
+            StringBuilder uptime = new StringBuilder(String.format(Locale.US, "%dsec", upTimeDuration.getStandardSeconds() % 60));
+            if (upTimeDuration.getStandardMinutes() > 0) {
+                uptime.insert(0, String.format(Locale.US, "%dmin ", upTimeDuration.getStandardMinutes() % 60));
+            }
+            if (upTimeDuration.getStandardHours() > 0) {
+                uptime.insert(0, String.format(Locale.US, "%dhrs ", upTimeDuration.getStandardHours() % 24));
+            }
+            if (upTimeDuration.getStandardDays() > 0) {
+                uptime.insert(0, String.format(Locale.US, "%ddays ", upTimeDuration.getStandardDays()));
+            }
+            ((TextView) findViewById(R.id.deviceUptimeView)).setText(uptime.toString());
+        }
+        if (status.getRegistered() != null) {
+            ((CheckBox) findViewById(R.id.deviceRegisteredCheckbox)).setChecked(status.getRegistered());
+        }
+    }
+
+    private void sendPayload(Object request) {
+        String json = new GsonBuilder().create().toJson(request);
+        String payload = request.getClass().getSimpleName() + ":" + json;
         if (endpointId != null) {
-            WifiConnectionRequest request = new WifiConnectionRequest(neworkSsid, networkPassword);
-            String json = new GsonBuilder().create().toJson(request);
-            String payload = request.getClass().getSimpleName() + ":" + json;
             Nearby.getConnectionsClient(this).sendPayload(
                     endpointId, Payload.fromBytes(payload.getBytes()));
         } else {
-            Log.w(TAG, "Nearby endpoint is not connected");
+            Log.w(TAG, "Nearby endpoint is not connected to send: " + payload);
         }
     }
 
@@ -287,18 +439,9 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+        if (id == R.id.nav_clocks) {
+            Intent intent = new Intent(this, ClocksActivity.class);
+            startActivity(intent);
         } else if (id == R.id.nav_logout) {
             AuthUI.getInstance()
                     .signOut(this)
@@ -321,6 +464,7 @@ public class MainActivity extends AppCompatActivity
         if (endpointId != null) {
             Log.i(TAG, "Disconnecting nearby endpoint: " + endpointId);
             client.disconnectFromEndpoint(endpointId);
+            endpointId = null;
         }
         Log.i(TAG, "Disconnecting all nearby endpoints");
         client.stopAllEndpoints();

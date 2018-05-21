@@ -28,13 +28,28 @@ public class WebManager {
         queue = Volley.newRequestQueue(context);
     }
 
-    public void register(String verificationNumber, Consumer<RegisterResponse> onResponse) {
-        GsonRequest<RegisterRequest, RegisterResponse> gsonRequest = new GsonRequest<>(
+    public void register(String userIdToken, Consumer<RegisterForUserResponse> onResponse, Consumer<Throwable> onError) {
+        GsonRequest<RegisterForUserRequest, RegisterForUserResponse> gsonRequest = new GsonRequest<>(
                 gson,
-                "https://clock.camrdale.org/register",
-                RegisterResponse.class,
-                ImmutableMap.of(),
-                new RegisterRequest(verificationNumber),
+                "https://clock.camrdale.org/registerforuser",
+                RegisterForUserResponse.class,
+                ImmutableMap.of("Authorization", "Bearer " + userIdToken),
+                new RegisterForUserRequest(userIdToken),
+                onResponse::accept,
+                error -> {
+                    this.onError(error);
+                    onError.accept(error);
+                });
+        queue.add(gsonRequest);
+    }
+
+    public void checkInForUser(String userIdToken, String clockKey, Consumer<CheckInResponse> onResponse) {
+        GsonRequest<CheckInRequest, CheckInResponse> gsonRequest = new GsonRequest<>(
+                gson,
+                "https://clock.camrdale.org/checkinforuser",
+                CheckInResponse.class,
+                ImmutableMap.of("Authorization", "Bearer " + userIdToken),
+                new CheckInRequest(clockKey),
                 onResponse::accept,
                 this::onError);
         queue.add(gsonRequest);

@@ -10,20 +10,22 @@ import android.os.CountDownTimer;
 import android.util.Log;
 
 import com.cronutils.parser.CronParser;
+import com.google.android.things.device.TimeManager;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import org.camrdale.clock.thing.alarm.Alarm;
 import org.camrdale.clock.thing.alarm.AlarmStorage;
 import org.camrdale.clock.thing.alarm.Alarms;
-import org.camrdale.clock.thing.peripherals.DisplayManager;
 import org.camrdale.clock.thing.sounds.MediaManager;
 import org.camrdale.clock.thing.web.CheckInResponse;
-import org.camrdale.clock.thing.web.RegisterResponse;
+import org.camrdale.clock.thing.web.RegisterForUserResponse;
 import org.camrdale.clock.thing.web.WebManager;
 
 import java.time.ZonedDateTime;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -50,7 +52,6 @@ public class StateManager {
     private final AlarmStorage alarmStorage;
     private final WebManager webManager;
     private final MediaManager mediaManager;
-    private final DisplayManager displayManager;
     private final CronParser cronParser;
     private final Context context;
 
@@ -71,14 +72,12 @@ public class StateManager {
     @Inject StateManager(
             MediaManager mediaManager,
             WebManager webManager,
-            DisplayManager displayManager,
             AlarmStorage alarmStorage,
             Alarms alarms,
             CronParser cronParser,
             Context context) {
         this.mediaManager = mediaManager;
         this.webManager = webManager;
-        this.displayManager = displayManager;
         this.alarmStorage = alarmStorage;
         this.alarms = alarms;
         this.cronParser = cronParser;
@@ -185,32 +184,26 @@ public class StateManager {
                 mediaManager.stopPlaying();
                 break;
             case IDLE:
-                displayManager.setDisplayMode(DisplayManager.DisplayMode.HOUR_MINUTE);
                 break;
         }
     }
 
-    public void registerKeyPress() {
-        String verificationCode = String.format(Locale.US, "%04d",
-                ThreadLocalRandom.current().nextInt(0, 10000));
-        Log.i(TAG, "Starting registration process with code: " + verificationCode);
-        displayManager.setVerificationCodeDisplayMode(verificationCode);
-        webManager.register(verificationCode, this::registrationCallComplete);
-
-        ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime expireRegistration = now.plusMinutes(1);
-        Log.i(TAG, "Scheduling expiry of registration: " + expireRegistration);
-        expireRegistrationIntent =
-                PendingIntent.getBroadcast(context, 0, new Intent(EXPIRE_REGISTRATION_ACTION), 0);
-        alarmManager.set(AlarmManager.RTC_WAKEUP,
-                expireRegistration.toInstant().toEpochMilli(), expireRegistrationIntent);
+    public void register(String userIdToken, Consumer<String> successCallback, Consumer<Throwable> errorCallback) {
+        Log.i(TAG, "Starting registration process with user ID token: " + userIdToken);
+        webManager.register(userIdToken, response -> {
+            try {
+                registrationCallComplete(response);
+                successCallback.accept(userIdToken);
+            } catch (Exception e) {
+                errorCallback.accept(e);
+            }
+        }, errorCallback);
     }
 
-    private void registrationCallComplete(RegisterResponse response) {
+    private void registrationCallComplete(RegisterForUserResponse response) {
         Log.i(TAG, "Received new clock key: " + response.getClockKey());
         alarmStorage.saveNewWebKey(response.getClockKey());
-        registering = true;
-        scheduleCheckIns(5);
+        checkIn();
     }
 
     private void checkIn() {
@@ -220,7 +213,16 @@ public class StateManager {
             return;
         }
         Log.i(TAG, "Starting checkIn process with clock key: " + webKey.get());
-        webManager.checkIn(webKey.get(), this::checkInCallComplete);
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            Log.i(TAG, "Using user for checkIn process: " + user.getEmail());
+            user.getIdToken(false)
+                    .addOnSuccessListener(result -> webManager.checkInForUser(
+                            result.getToken(), webKey.get(), this::checkInCallComplete))
+                    .addOnFailureListener(e -> Log.e(TAG, "Failed getting user token: " + e, e));
+        } else {
+            webManager.checkIn(webKey.get(), this::checkInCallComplete);
+        }
     }
 
     private void checkInCallComplete(CheckInResponse response) {
@@ -248,6 +250,14 @@ public class StateManager {
                 }
                 scheduleNextAlarm();
             }
+            if (response.getTimeZone() != null && response.getTimeZone().length() > 0) {
+                String currentTimeZone = TimeZone.getDefault().getID();
+                if (!response.getTimeZone().equals(currentTimeZone)) {
+                    Log.i(TAG, "Changing time zone from " + currentTimeZone + " to " + response.getTimeZone());
+                    TimeManager timeManager = TimeManager.getInstance();
+                    timeManager.setTimeZone(response.getTimeZone());
+                }
+            }
         }
 
         if (response.getRevision() != null) {
@@ -273,7 +283,6 @@ public class StateManager {
             expireRegistrationIntent.cancel();
             expireRegistrationIntent = null;
         }
-        displayManager.setDisplayMode(DisplayManager.DisplayMode.HOUR_MINUTE);
         scheduleCheckIns(60);
     }
 

@@ -47,7 +47,7 @@ public class ConnectActivity extends AppCompatActivity {
                     Log.i(TAG, "Connection initiated");
                     new AlertDialog.Builder(ConnectActivity.this)
                             .setTitle("Accept connection to " + connectionInfo.getEndpointName())
-                            .setMessage("Confirm the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
+                            .setMessage("Confirm the code " + connectionInfo.getAuthenticationToken().substring(0, 4) + " is also displayed on the other device")
                             .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     // The user confirmed, so we can accept the connection.

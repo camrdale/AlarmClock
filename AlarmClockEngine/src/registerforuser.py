@@ -7,8 +7,6 @@ import logging
 import uuid
 import webapp2
 
-from google.appengine.ext import ndb
-
 import models
 import utils
 
@@ -16,31 +14,23 @@ import utils
 class JsonEndpoint(webapp2.RequestHandler):
 
     def post(self):
+        logging.info('Received headers: ' + str(self.request.headers))
         user = utils.getLoggedInUser(self.request.headers)
         if not user:
             self.abort(401)
-
+        
         content = self.request.body.decode('utf-8')
         logging.info('Received content: ' + content)
         inputData = json.loads(content)
         logging.info('Received JSON: ' + str(inputData))
 
-        clock_key = ndb.Key(urlsafe=inputData['clock_key'])
-        clock = clock_key.get()
-        userClock = models.UserClock.get_by_clock(user, clock_key)
-        
-        if not clock or not userClock:
-            self.abort(404)
-            
-        if 'name' in inputData:
-            userClock.name = inputData['name']
-            userClock.put()
-        if 'time_zone' in inputData:
-            clock.time_zone = inputData['time_zone']
-            clock.revision = str(uuid.uuid4())
-            clock.put()
-        
-        data = {}
+        new_clock = models.Clock(claimed=True, time_zone='America/Los_Angeles', revision=str(uuid.uuid4()))
+        clock_key = new_clock.put()
+
+        userClock = models.UserClock(name='Placeholder', clock=clock_key, parent=user.key)
+        userClock.put()
+
+        data = {'clock_key': clock_key.urlsafe()}
 
         logging.info('Sending JSON: ' + str(data))
         content = json.dumps(data)
@@ -51,5 +41,5 @@ class JsonEndpoint(webapp2.RequestHandler):
 
 
 app = webapp2.WSGIApplication([
-    ('/edit', JsonEndpoint),
+    ('/registerforuser', JsonEndpoint),
 ], debug=True)

@@ -13,8 +13,14 @@ handlers:
 - url: /register
   script: register.app
 
+- url: /registerforuser
+  script: registerforuser.app
+
 - url: /checkin
   script: checkin.app
+
+- url: /checkinforuser
+  script: checkinforuser.app
 
 - url: /claim
   script: claim.app

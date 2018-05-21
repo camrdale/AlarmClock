@@ -6,8 +6,8 @@ android {
         applicationId "org.camrdale.clock.thing"
         minSdkVersion 27
         targetSdkVersion 27
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "2.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -41,9 +41,14 @@ dependencies {
     // if you use the support libraries
     annotationProcessor 'com.google.dagger:dagger-android-processor:2.15'
     implementation 'com.cronutils:cron-utils:7.0.1'
-    implementation 'com.google.guava:guava:25.0-jre'
+    implementation 'com.google.guava:guava:25.0-android'
     implementation 'com.google.code.gson:gson:2.8.4'
     implementation 'com.android.volley:volley:1.1.0'
     implementation 'com.google.android.gms:play-services-nearby:15.0.1'
+    implementation 'com.google.firebase:firebase-core:15.0.2'
+    implementation 'com.google.firebase:firebase-auth:15.1.0'
+    implementation 'com.google.android.gms:play-services-auth:15.0.1'
     implementation project(':shared')
 }
+
+apply plugin: 'com.google.gms.google-services'

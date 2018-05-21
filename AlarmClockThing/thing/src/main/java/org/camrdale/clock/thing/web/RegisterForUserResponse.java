@@ -3,19 +3,19 @@ package org.camrdale.clock.thing.web;
 import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
 
-public class CheckInRequest {
+public class RegisterForUserResponse {
     @SerializedName("clock_key")
     private String clockKey;
 
-    CheckInRequest(String clockKey) {
-        this.clockKey = clockKey;
+    public String getClockKey() {
+        return clockKey;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        CheckInRequest that = (CheckInRequest) o;
+        RegisterForUserResponse that = (RegisterForUserResponse) o;
         return Objects.equal(clockKey, that.clockKey);
     }
 
@@ -26,7 +26,7 @@ public class CheckInRequest {
 
     @Override
     public String toString() {
-        return "CheckInRequest{" +
+        return "RegisterForUserResponse{" +
                 "clockKey='" + clockKey + '\'' +
                 '}';
     }

@@ -3,11 +3,11 @@ package org.camrdale.clock.thing.web;
 import com.google.common.base.Objects;
 import com.google.gson.annotations.SerializedName;
 
-public class RegisterRequest {
+public class RegisterForUserRequest {
     @SerializedName("verification_number")
     private String verificationNumber;
 
-    RegisterRequest(String verificationNumber) {
+    RegisterForUserRequest(String verificationNumber) {
         this.verificationNumber = verificationNumber;
     }
 
@@ -15,7 +15,7 @@ public class RegisterRequest {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        RegisterRequest that = (RegisterRequest) o;
+        RegisterForUserRequest that = (RegisterForUserRequest) o;
         return Objects.equal(verificationNumber, that.verificationNumber);
     }
 
@@ -26,7 +26,7 @@ public class RegisterRequest {
 
     @Override
     public String toString() {
-        return "RegisterRequest{" +
+        return "RegisterForUserRequest{" +
                 "verificationNumber='" + verificationNumber + '\'' +
                 '}';
     }
