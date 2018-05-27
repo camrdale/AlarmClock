@@ -17,6 +17,8 @@ import com.google.firebase.auth.FirebaseUser;
 import org.camrdale.clock.thing.alarm.Alarm;
 import org.camrdale.clock.thing.alarm.AlarmStorage;
 import org.camrdale.clock.thing.alarm.Alarms;
+import org.camrdale.clock.thing.peripherals.sound.BuzzerManager;
+import org.camrdale.clock.thing.peripherals.lights.LedManager;
 import org.camrdale.clock.thing.sounds.MediaManager;
 import org.camrdale.clock.thing.web.CheckInResponse;
 import org.camrdale.clock.thing.web.RegisterForUserResponse;
@@ -56,6 +58,8 @@ public class StateManager {
     private final AlarmStorage alarmStorage;
     private final WebManager webManager;
     private final MediaManager mediaManager;
+    private final LedManager ledManager;
+    private final BuzzerManager buzzerManager;
     private final CronParser cronParser;
     private final Context context;
 
@@ -76,12 +80,16 @@ public class StateManager {
             WebManager webManager,
             AlarmStorage alarmStorage,
             Alarms alarms,
+            LedManager ledManager,
+            BuzzerManager buzzerManager,
             CronParser cronParser,
             Context context) {
         this.mediaManager = mediaManager;
         this.webManager = webManager;
         this.alarmStorage = alarmStorage;
         this.alarms = alarms;
+        this.ledManager = ledManager;
+        this.buzzerManager = buzzerManager;
         this.cronParser = cronParser;
         this.context = context;
 
@@ -152,6 +160,8 @@ public class StateManager {
                 }
                 mCurrentState = AlarmState.IDLE;
                 mediaManager.stopPlaying();
+                ledManager.setLedStrip(false);
+                buzzerManager.setBuzzer(false);
                 break;
         }
     }
@@ -162,6 +172,8 @@ public class StateManager {
                 Log.i(TAG, "Snoozing alarm");
                 mCurrentState = AlarmState.SNOOZED;
                 mediaManager.stopPlaying();
+                ledManager.setLedStrip(false);
+                buzzerManager.setBuzzer(false);
 
                 ZonedDateTime now = ZonedDateTime.now();
                 ZonedDateTime expireSnooze = now.plus(SNOOZE_EXPIRY_TIME);
@@ -181,6 +193,8 @@ public class StateManager {
                 mediaManager.stopPlaying();
                 break;
             case IDLE:
+                ledManager.setLedStrip(!ledManager.getLedStripStatus());
+                buzzerManager.setBuzzer(!buzzerManager.getStatus());
                 break;
         }
     }
@@ -288,6 +302,8 @@ public class StateManager {
                 }
                 mCurrentState = AlarmState.FIRING;
                 mediaManager.startPlaying();
+                ledManager.setLedStrip(true);
+                buzzerManager.setBuzzer(true);
 
                 ZonedDateTime now = ZonedDateTime.now();
                 ZonedDateTime expireAlarm = now.plus(ALARM_EXPIRY_TIME);
@@ -307,10 +323,14 @@ public class StateManager {
             }
             mCurrentState = AlarmState.IDLE;
             mediaManager.stopPlaying();
+            ledManager.setLedStrip(false);
+            buzzerManager.setBuzzer(false);
         } else if (SNOOZE_ACTION.equals(intent.getAction()) && mCurrentState == AlarmState.SNOOZED) {
             Log.i(TAG, "Snooze expired, re-enabling alarm");
             mCurrentState = AlarmState.FIRING;
             mediaManager.startPlaying();
+            ledManager.setLedStrip(true);
+            buzzerManager.setBuzzer(true);
         } else if (SLEEP_ACTION.equals(intent.getAction()) && mCurrentState == AlarmState.SLEEP) {
             Log.i(TAG, "Sleep expired");
             mCurrentState = AlarmState.IDLE;

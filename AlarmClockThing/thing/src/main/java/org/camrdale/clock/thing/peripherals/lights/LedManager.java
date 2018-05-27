@@ -1,5 +1,6 @@
-package org.camrdale.clock.thing.peripherals;
+package org.camrdale.clock.thing.peripherals.lights;
 
+import android.os.CountDownTimer;
 import android.util.Log;
 
 import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
@@ -17,6 +18,9 @@ public class LedManager {
     private Gpio mRedLed;
     private Gpio mGreenLed;
     private Gpio mBlueLed;
+    private Apa102 ledStrip;
+    private CountDownTimer countDownTimer;
+    private int count = 0;
 
     @Inject LedManager() {
         try {
@@ -33,6 +37,13 @@ public class LedManager {
             mBlueLed = RainbowHat.openLedBlue();
         } catch (Exception e) {
             Log.e(TAG, "Failed to initialize the LED.", e);
+        }
+        try {
+            ledStrip = new Apa102("SPI0.0", Apa102.Mode.BGR, Apa102.Direction.REVERSED);
+            ledStrip.setBrightness(0);
+            ledStrip.write(new int[7]);
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to initialize the LED strip.", e);
         }
     }
 
@@ -57,6 +68,39 @@ public class LedManager {
             mGreenLed.setValue(value);
         } catch (Exception e) {
             Log.e(TAG, "Failed to light the LED.", e);
+        }
+    }
+
+    public boolean getLedStripStatus() {
+        return ledStrip.getBrightness() > 0;
+    }
+
+    public void setLedStrip(boolean value) {
+        if (value) {
+            if (ledStrip.getBrightness() == 0) {
+                ledStrip.setBrightness(31);
+                if (count == 0) {
+                    countDownTimer = new StarWarsLeds(ledStrip);
+                } else {
+                    countDownTimer = new KnightRiderLeds(ledStrip);
+                }
+                count = (count + 1) % 2;
+                countDownTimer.start();
+            } else {
+                Log.w(TAG, "Led strip is already on");
+            }
+        } else {
+            try {
+                countDownTimer.cancel();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                ledStrip.setBrightness(0);
+                ledStrip.write(new int[7]);
+            } catch (IOException e) {
+                Log.e(TAG, "Error turning off led strip", e);
+            }
         }
     }
 
@@ -89,6 +133,22 @@ public class LedManager {
                 Log.e(TAG, "Error disabling led", e);
             } finally {
                 mBlueLed = null;
+            }
+        }
+        try {
+            countDownTimer.cancel();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (ledStrip != null) {
+            try {
+                ledStrip.setBrightness(0);
+                ledStrip.write(new int[7]);
+                ledStrip.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Error disabling led strip", e);
+            } finally {
+                ledStrip = null;
             }
         }
     }

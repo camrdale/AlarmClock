@@ -6,8 +6,9 @@ import android.view.KeyEvent;
 
 import org.camrdale.clock.thing.nearby.NearbyManager;
 import org.camrdale.clock.thing.peripherals.ButtonManager;
+import org.camrdale.clock.thing.peripherals.sound.BuzzerManager;
 import org.camrdale.clock.thing.peripherals.DisplayManager;
-import org.camrdale.clock.thing.peripherals.LedManager;
+import org.camrdale.clock.thing.peripherals.lights.LedManager;
 import org.camrdale.clock.thing.sounds.MediaManager;
 import org.camrdale.clock.thing.state.StateManager;
 import org.camrdale.clock.thing.web.WebManager;
@@ -24,6 +25,7 @@ public class HomeActivity extends Activity {
 
     @Inject DisplayManager displayManager;
     @Inject LedManager ledManager;
+    @Inject BuzzerManager buzzerManager;
     @Inject ButtonManager buttonManager;
     @Inject StateManager stateManager;
     @Inject WebManager webManager;
@@ -82,6 +84,7 @@ public class HomeActivity extends Activity {
         mediaManager.cleanup();
         stateManager.cleanup();
         displayManager.cleanup();
+        buzzerManager.cleanup();
         ledManager.cleanup();
         buttonManager.cleanup();
     }
