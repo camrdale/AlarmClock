@@ -1,6 +1,7 @@
 package org.camrdale.clock.thing.nearby;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
@@ -31,6 +32,7 @@ import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import org.camrdale.clock.shared.nearby.ChangeVolumeRequest;
 import org.camrdale.clock.shared.nearby.FactoryResetRequest;
 import org.camrdale.clock.shared.nearby.FactoryResetResponse;
 import org.camrdale.clock.shared.nearby.RebootRequest;
@@ -115,6 +117,9 @@ public class NearbyManager extends ConnectionLifecycleCallback {
             } else if (payloadString.startsWith(RegisterRequest.class.getSimpleName() + ":")) {
                 RegisterRequest registerRequest = new Gson().fromJson(payloadString.substring(RegisterRequest.class.getSimpleName().length() + 1), RegisterRequest.class);
                 register();
+            } else if (payloadString.startsWith(ChangeVolumeRequest.class.getSimpleName() + ":")) {
+                ChangeVolumeRequest rebootRequest = new Gson().fromJson(payloadString.substring(ChangeVolumeRequest.class.getSimpleName().length() + 1), ChangeVolumeRequest.class);
+                changeVolume(rebootRequest.getVolume());
             } else if (payloadString.startsWith(RebootRequest.class.getSimpleName() + ":")) {
                 RebootRequest rebootRequest = new Gson().fromJson(payloadString.substring(RebootRequest.class.getSimpleName().length() + 1), RebootRequest.class);
                 reboot();
@@ -232,6 +237,10 @@ public class NearbyManager extends ConnectionLifecycleCallback {
 
         FirebaseUser user = mAuth.getCurrentUser();
 
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+
         sendPayload(new StatusBroadcast(
                 wifiConnected,
                 wifiConnected ? CharMatcher.is('\"').trimFrom(info.getSSID()) : null,
@@ -239,7 +248,8 @@ public class NearbyManager extends ConnectionLifecycleCallback {
                 user != null ? user.getEmail() : null,
                 user != null ? user.getDisplayName() : null,
                 SystemClock.uptimeMillis(),
-                alarmStorage.getWebKey().isPresent()));
+                alarmStorage.getWebKey().isPresent(),
+                ((float) current) / ((float) max)));
     }
 
     private void connectToWifi(String networkSsid, String networkPassword) {
@@ -319,6 +329,12 @@ public class NearbyManager extends ConnectionLifecycleCallback {
         } catch (Exception e) {
             sendPayload(new RegisterResponse(false, e.toString()));
         }
+    }
+
+    private void changeVolume(float volume) {
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(max * volume), 0);
     }
 
     private void reboot() {

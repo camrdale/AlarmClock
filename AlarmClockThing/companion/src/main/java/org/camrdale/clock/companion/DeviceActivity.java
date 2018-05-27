@@ -23,6 +23,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.firebase.ui.auth.AuthUI;
@@ -41,6 +42,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
 
+import org.camrdale.clock.shared.nearby.ChangeVolumeRequest;
 import org.camrdale.clock.shared.nearby.FactoryResetRequest;
 import org.camrdale.clock.shared.nearby.FactoryResetResponse;
 import org.camrdale.clock.shared.nearby.RebootRequest;
@@ -78,6 +80,7 @@ public class DeviceActivity extends AppCompatActivity
     private TextView navHeaderName;
     private TextView navHeaderEmail;
     private ImageView navHeaderImage;
+    private boolean seekingVolume = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,7 +88,7 @@ public class DeviceActivity extends AppCompatActivity
         setContentView(R.layout.activity_device);
         mAuth = FirebaseAuth.getInstance();
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.deviceToolbar);
         setSupportActionBar(toolbar);
 
         Button deviceConnect = findViewById(R.id.device_connect_button);
@@ -201,6 +204,26 @@ public class DeviceActivity extends AppCompatActivity
                 findViewById(R.id.deviceView).setVisibility(View.VISIBLE);
 
                 ((TextView) findViewById(R.id.deviceNameView)).setText(endpointName);
+
+                SeekBar mVolumeBar = findViewById(R.id.deviceVolumeBar);
+                mVolumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        // Do nothing.
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+                        seekingVolume = true;
+                    }
+
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+                        seekingVolume = false;
+                        sendPayload(new ChangeVolumeRequest(((float) seekBar.getProgress()) / 100.0f));
+                    }
+                });
+
                 Button mWifiButton = findViewById(R.id.device_wifi_button);
                 mWifiButton.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -387,6 +410,9 @@ public class DeviceActivity extends AppCompatActivity
         }
         if (status.getRegistered() != null) {
             ((CheckBox) findViewById(R.id.deviceRegisteredCheckbox)).setChecked(status.getRegistered());
+        }
+        if (!seekingVolume) {
+            ((SeekBar) findViewById(R.id.deviceVolumeBar)).setProgress(Math.round(100 * status.getVolume()));
         }
     }
 

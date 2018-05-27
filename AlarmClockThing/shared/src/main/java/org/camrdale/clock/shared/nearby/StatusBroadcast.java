@@ -24,6 +24,8 @@ public class StatusBroadcast {
 
     private Boolean registered;
 
+    private float volume;
+
     public StatusBroadcast(
             boolean wifiConnected,
             String wifiNetworkSsid,
@@ -31,7 +33,8 @@ public class StatusBroadcast {
             String signedInUserEmail,
             String signedInUserName,
             long upTimeMillis,
-            boolean registered) {
+            boolean registered,
+            float volume) {
         this.wifiConnected = wifiConnected;
         this.wifiNetworkSsid = wifiNetworkSsid;
         this.signedIn = signedIn;
@@ -39,6 +42,7 @@ public class StatusBroadcast {
         this.signedInUserName = signedInUserName;
         this.upTimeMillis = upTimeMillis;
         this.registered = registered;
+        this.volume = volume;
     }
 
     public Boolean getWifiConnected() {
@@ -69,6 +73,10 @@ public class StatusBroadcast {
         return registered;
     }
 
+    public float getVolume() {
+        return volume;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -80,12 +88,13 @@ public class StatusBroadcast {
                 Objects.equal(signedInUserEmail, that.signedInUserEmail) &&
                 Objects.equal(signedInUserName, that.signedInUserName) &&
                 Objects.equal(upTimeMillis, that.upTimeMillis) &&
-                Objects.equal(registered, that.registered);
+                Objects.equal(registered, that.registered) &&
+                Objects.equal(volume, that.volume);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(wifiConnected, wifiNetworkSsid, signedIn, signedInUserEmail, signedInUserName, upTimeMillis, registered);
+        return Objects.hashCode(wifiConnected, wifiNetworkSsid, signedIn, signedInUserEmail, signedInUserName, upTimeMillis, registered, volume);
     }
 
     @Override
@@ -98,6 +107,7 @@ public class StatusBroadcast {
                 ", signedInUserName='" + signedInUserName + '\'' +
                 ", upTimeMillis=" + upTimeMillis +
                 ", registered=" + registered +
+                ", volume=" + volume +
                 '}';
     }
 }
