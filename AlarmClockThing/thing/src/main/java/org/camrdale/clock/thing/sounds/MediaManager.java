@@ -1,8 +1,6 @@
 package org.camrdale.clock.thing.sounds;
 
-import android.content.Context;
 import android.media.AudioAttributes;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.util.Log;
 
@@ -13,18 +11,9 @@ import javax.inject.Singleton;
 public class MediaManager {
     private static final String TAG = MediaManager.class.getSimpleName();
 
-    private final AudioManager audioManager;
     private MediaPlayer mediaPlayer;
 
-    @Inject MediaManager(Context context) {
-        audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (audioManager != null) {
-            audioManager.setStreamVolume(
-                    AudioManager.STREAM_MUSIC,
-                    audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC),
-                    0);
-        }
-    }
+    @Inject MediaManager() {}
 
     public void startPlaying() {
         try {
@@ -38,6 +27,7 @@ public class MediaManager {
                     .build());
             mediaPlayer.setDataSource(url);
             mediaPlayer.prepareAsync();
+            mediaPlayer.setOnBufferingUpdateListener((mp, percent) -> Log.i(TAG, "Buffering: " + percent));
             mediaPlayer.setOnPreparedListener(mp -> {
                 Log.i(TAG, "Starting playback of media.");
                 mp.start();
