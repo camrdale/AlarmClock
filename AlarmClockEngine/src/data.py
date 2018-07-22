@@ -11,6 +11,8 @@ import webapp2
 
 from google.appengine.ext import ndb
 
+from crontab import CronTab
+
 import models
 import utils
 
@@ -55,9 +57,18 @@ class JsonEndpoint(webapp2.RequestHandler):
 
         userClocks = models.UserClock.query_by_user(user).fetch(100)
         clocks = ndb.get_multi(userClock.clock for userClock in userClocks)
+        nextAlarms = []
         for userClock, clock in zip(userClocks, clocks):
             timezone = pytz.timezone(clock.time_zone)
             alarms = models.Alarm.query_by_clock(clock.key).fetch(100)
+            now = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(timezone)
+            for alarm in alarms:
+                next_alarm = CronTab(alarm.crontab).next(now=now, default_utc=False)
+                if next_alarm is not None:
+                    nextAlarms.append(
+                        (now + datetime.timedelta(seconds=next_alarm),
+                         alarm.crontab,
+                         userClock.name))
             data['clocks'].append({
                 'clock_key': clock.key.urlsafe(),
                 'name': userClock.name,
@@ -69,10 +80,19 @@ class JsonEndpoint(webapp2.RequestHandler):
         now = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(timezone)
         data['now'] = now.strftime('%I:%M:%S %p %A, %B %d, %Y')
         data['num_alarms_display'] = num_alarms_display
-        data['next_alarms'] = ['08:30:00 AM Monday, April 30, 2018']
-        # TODO: retrieve saved alarms
-        #    alarm.strftime('%I:%M:%S %p %A, %B %d, %Y')
-        #    for alarm in self._alarms.next_alarms(num_alarms_display, now=now)]
+        next_alarms = []
+        while len(next_alarms) < num_alarms_display and nextAlarms:
+            nextAlarms.sort()
+            (alarm, crontab, name) = nextAlarms.pop(0)
+            next_alarms.append(alarm.strftime('%I:%M:%S %p %A, %B %d, %Y') + ' (' + name + ')')
+            next_alarm = CronTab(crontab).next(now=alarm, default_utc=False)
+            if next_alarm is not None:
+                nextAlarms.append(
+                    (alarm + datetime.timedelta(seconds=next_alarm),
+                     crontab,
+                     name))
+            
+        data['next_alarms'] = next_alarms
 
         logging.info('Sending JSON: ' + str(data))
         content = json.dumps(data)
