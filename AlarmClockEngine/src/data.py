@@ -69,12 +69,15 @@ class JsonEndpoint(webapp2.RequestHandler):
                         (now + datetime.timedelta(seconds=next_alarm),
                          alarm.crontab,
                          userClock.name))
+            last_checkin = clock.last_checkin
+            last_checkin = pytz.utc.localize(last_checkin).astimezone(timezone)
             data['clocks'].append({
                 'clock_key': clock.key.urlsafe(),
                 'name': userClock.name,
                 'time_zone': clock.time_zone,
+                'last_checkin': last_checkin.strftime('%I:%M:%S %p %A, %B %d, %Y'),
                 'alarms': [
-                    {'crontab': alarm.crontab, 'buzzer': alarm.buzzer}
+                    {'crontab': alarm.crontab, 'buzzer': alarm.buzzer, 'fetched': alarm.clock_fetch_time is not None}
                     for alarm in alarms]})
         
         now = pytz.utc.localize(datetime.datetime.utcnow()).astimezone(timezone)

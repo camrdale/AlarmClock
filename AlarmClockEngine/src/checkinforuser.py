@@ -42,6 +42,10 @@ class JsonEndpoint(webapp2.RequestHandler):
             data['alarms'] = [
                 {'crontab': alarm.crontab, 'buzzer': alarm.buzzer}
                 for alarm in alarms]
+            for alarm in alarms:
+                if alarm.clock_fetch_time is None:
+                    alarm.clock_fetch_time = datetime.datetime.utcnow()
+                    alarm.put()
         else:
             data['claimed'] = False
 

@@ -295,14 +295,15 @@ function updateData(data) {
         
         var clockDescription = document.createElement("p");
         clockDescription.innerText = "Current alarms for clock " + clock["name"]
-            + " in timezone " + clock["time_zone"];
+            + " in timezone " + clock["time_zone"]
+            + " (last checked in " + clock["last_checkin"] + ")";
         clockForm.appendChild(clockDescription);
 
         var ulAlarms = document.createElement("ul");
         var alarms = clock["alarms"];
         for (var i = 0; i < alarms.length; i++) {
             var alarm = alarms[i]
-            ulAlarms.appendChild(createAlarmRow(alarm["crontab"], alarm["buzzer"]));
+            ulAlarms.appendChild(createAlarmRow(alarm["crontab"], alarm["buzzer"], alarm["fetched"]));
         }
         clockForm.appendChild(ulAlarms);
         
@@ -359,11 +360,18 @@ function appendAlarmRow(event) {
             break;
     }
     var ul = form.getElementsByTagName("ul")[0];
-    ul.appendChild(createAlarmRow(defaultCrontab, defaultBuzzer));
+    ul.appendChild(createAlarmRow(defaultCrontab, defaultBuzzer, false));
 }
 
-function createAlarmRow(crontab, buzzer) {
+function createAlarmRow(crontab, buzzer, fetched) {
     var li = document.createElement("li");
+    
+    if (fetched) {
+        var img = document.createElement("IMG");
+        img.classList.add("checkmark");
+        img.src = "checkmark.svg";
+        li.appendChild(img);
+    }
     
     var text = document.createElement("input");
     text.classList.add(crontabClassName);
@@ -371,6 +379,7 @@ function createAlarmRow(crontab, buzzer) {
     text.value = crontab;
     li.appendChild(text);
     
+    li.appendChild(document.createTextNode("buzzer: "));
     var checkbox = document.createElement("input");
     checkbox.classList.add(buzzerClassName);
     checkbox.type = "checkbox";

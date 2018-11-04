@@ -118,3 +118,8 @@ span.psw {
        width: 100%;
     }
 }
+
+/* The Checkmark image */
+img.checkmark {
+	height: 30px;
+}

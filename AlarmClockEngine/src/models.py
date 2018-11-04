@@ -30,6 +30,8 @@ class Clock(ndb.Model):
 class Alarm(ndb.Model):
     crontab = ndb.StringProperty()
     buzzer = ndb.BooleanProperty()
+    creation_time = ndb.DateTimeProperty(auto_now_add=True)
+    clock_fetch_time = ndb.DateTimeProperty()
 
     @classmethod
     def query_by_clock(cls, clock_key):
