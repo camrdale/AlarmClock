@@ -15,7 +15,6 @@ alarmclock is a script to control an Arduino/Raspberry Pi alarm clock.
 '''
 
 import datetime
-import hashlib
 import json
 import mpd
 import random
@@ -129,9 +128,6 @@ class Alarm(object):
             return self._alarm.next(default_utc=False)
         else:
             return self._alarm.next(now=now, default_utc=False)
-
-    def get_crontab(self):
-        return self._crontab
 
     def get_buzzer(self):
         return self._buzzer
